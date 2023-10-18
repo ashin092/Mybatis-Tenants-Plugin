@@ -41,7 +41,11 @@ _*在这个例子中，`tenants_id = ?`的实际运行赋值与项目对`TenantU
 要安装此插件，请将 jar 包添加到你的项目依赖中。
 或在pom.xml文件中添加以下坐标:
 ```xml
-    插件暂未发布pom
+    <dependency>
+        <groupId>com.bitchain</groupId>
+        <artifactId>mybatis-tenants-plugin</artifactId>
+        <version>1.0.0</version>
+    </dependency>
 ```
 
 ## 使用方法
