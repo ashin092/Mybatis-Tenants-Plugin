@@ -6,13 +6,13 @@ import com.bitchain.tenants.plugin.comparator.TenantChainOrderComparator;
 import com.bitchain.tenants.plugin.core.TenantUserIdentity;
 import com.bitchain.tenants.plugin.ex.TenantException;
 import com.bitchain.tenants.plugin.util.MybatisUtils;
+import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.omg.CORBA.SystemException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Method;
@@ -45,8 +45,6 @@ public class TenantAutoConfiguration {
 
     final SqlSessionFactory sqlSessionFactory;
 
-    final JdbcTemplate jdbcTemplate;
-
     final TenantProperties tenantProperties;
 
     final ApplicationContext context;
@@ -74,10 +72,13 @@ public class TenantAutoConfiguration {
                     }
                 }
             }
-            for (String targetColumn : tenantProperties.getTargetColumns()) {
-                String sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_NAME = ?";
-                List<String> tableNames = jdbcTemplate.queryForList(sql, new Object[]{targetColumn}, String.class);
-                tenantProperties.getTargetTables().addAll(tableNames);
+            // 创建 SqlSession
+            try(SqlSession sqlSession = sqlSessionFactory.openSession()) {
+                for (String targetColumn : tenantProperties.getTargetColumns()) {
+                    String sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_NAME = #{columnName}";
+                    List<String> tableNames = sqlSession.selectList(sql, Collections.singletonMap("columnName", targetColumn));
+                    tenantProperties.getTargetTables().addAll(tableNames);
+                }
             }
         }
         TenantAutoConfiguration.instance = this;
@@ -120,9 +121,8 @@ public class TenantAutoConfiguration {
         return this.tenantProperties;
     }
 
-    public TenantAutoConfiguration(SqlSessionFactory sqlSessionFactory, JdbcTemplate jdbcTemplate, ApplicationContext context, TenantProperties tenantProperties) {
+    public TenantAutoConfiguration(SqlSessionFactory sqlSessionFactory, ApplicationContext context, TenantProperties tenantProperties) {
         this.sqlSessionFactory = sqlSessionFactory;
-        this.jdbcTemplate = jdbcTemplate;
         this.context = context;
         this.tenantProperties = tenantProperties;
     }

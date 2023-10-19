@@ -42,9 +42,9 @@ _*在这个例子中，`tenants_id = ?`的实际运行赋值与项目对`TenantU
 或在pom.xml文件中添加以下坐标:
 ```xml
     <dependency>
-        <groupId>com.bitchain</groupId>
+        <groupId>com.github.ashin092</groupId>
         <artifactId>mybatis-tenants-plugin</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </dependency>
 ```
 
