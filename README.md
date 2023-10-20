@@ -185,7 +185,7 @@ Let's present an example using a .properties file:
 
 * tenant.target-tables: The scope of the multi-tenant specified table does not take effect under automatic mode. Such as table1,table2,table3
 
-** Contact and Support
+## Contact and Support
 
 If you have any questions, doubts, or suggestions about Mybatis-Tenants-Plugin, please feel free to contact me. You can do so through the following methods:
 
