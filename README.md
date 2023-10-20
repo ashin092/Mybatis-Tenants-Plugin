@@ -2,8 +2,8 @@
 
 ## Language versions
 
-- [English](README.en.md)
-- [Chinese](README.zh.md)
+- [English](/.github/README.en.md)
+- [Chinese](/.github/README.en.md)
 
 Mybatis-Tenants-Plugin is a spring-boot-starter plugin based on MyBatis's interceptor interface expansion. It is a
 
