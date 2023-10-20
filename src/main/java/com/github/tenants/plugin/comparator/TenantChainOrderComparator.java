@@ -1,7 +1,7 @@
-package com.bitchain.tenants.plugin.comparator;
+package com.github.tenants.plugin.comparator;
 
-import com.bitchain.tenants.plugin.annotation.TenantChainOrder;
-import com.bitchain.tenants.plugin.core.TenantUserIdentity;
+import com.tenants.plugin.annotation.TenantChainOrder;
+import com.tenants.plugin.core.TenantUserIdentity;
 
 import java.util.Comparator;
 

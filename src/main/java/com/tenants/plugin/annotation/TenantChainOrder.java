@@ -1,6 +1,6 @@
-package com.bitchain.tenants.plugin.annotation;
+package com.tenants.plugin.annotation;
 
-import com.bitchain.tenants.plugin.core.TenantUserIdentity;
+import com.tenants.plugin.core.TenantUserIdentity;
 
 import java.lang.annotation.*;
 

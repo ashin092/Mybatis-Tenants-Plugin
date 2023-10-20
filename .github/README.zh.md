@@ -160,10 +160,10 @@ public class MybatisPluginAutoConfiguration {
 
 ## 配置参数说明
 以下以.properties文件举例：
-*  tenant.filter-additional：过滤器附加过滤后缀。 过滤符合mapper方法名 + 该项值的也会生效于【多租户过滤器 - TenantFilter】的规则。 该项配置的出现主要是为了防止使用PageHelper + 过滤器的时候，mapper method 加上了过滤标识。又因为PageHelper生成的sql为sqlId+_COUNT,导致无法成功过滤， 最后分页与预期大不同的情况。
+*  tenant.filter-additional：过滤器附加过滤后缀。 过滤符合mapper方法名 + 该项值的也会生效于【多租户过滤器 - TenantFilter】的规则。 该项配置的出现主要是为了防止使用PageHelper + 过滤器的时候，mapper method 加上了过滤标识。又因为PageHelper生成的sql为{sqlId+"_COUNT"},导致无法成功过滤， 最后分页与预期大不同的情况。
 
 
-* tenant.interceptor-auto-register：指示拦截器是否应自动注册。 <p> 默认情况下，拦截器在软件执行时自动注册。 但是，在某些情况下，可能需要手动注册拦截器。 此变量提供了启用或禁用自动注册行为的灵活性。 </p> <p> 如果此变量的值设置为 {@code true}，拦截器将自动注册。 如果值为 {@code false}，则拦截器不会自动注册，必须执行手动注册。
+* tenant.interceptor-auto-register：指示拦截器是否应自动注册。 <p> 默认情况下，拦截器在软件执行时自动注册。 但是，在某些情况下，可能需要手动注册拦截器。 此变量提供了启用或禁用自动注册行为的灵活性。 </p> <p> 如果此变量的值设置为 `true`，拦截器将自动注册。 如果值为 false，则拦截器不会自动注册，必须执行手动注册。
 
 
 * tenant.scan-mode：多租户sql干涉模式。 Auto自动模式(默认)：扫描全库，存在符合多租户相关字段的表自动处理。 该方式启动时间会相较于指定模式慢，随着数库表大小逐渐增加。 Assign指定模式：不自动扫表，采用tenant-include-tables列表中的表作为多租户的表指定处理。

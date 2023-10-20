@@ -1,4 +1,4 @@
-package com.bitchain.tenants.plugin.ex;
+package com.tenants.plugin.ex;
 
 /**
  * 表示特定于租户框架的异常。

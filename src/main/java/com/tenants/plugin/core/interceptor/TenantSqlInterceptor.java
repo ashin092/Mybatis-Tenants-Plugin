@@ -1,8 +1,8 @@
-package com.bitchain.tenants.plugin.core.interceptor;
+package com.tenants.plugin.core.interceptor;
 
-import com.bitchain.tenants.plugin.TenantProperties;
-import com.bitchain.tenants.plugin.annotation.TenantFilter;
-import com.bitchain.tenants.plugin.core.config.TenantAutoConfiguration;
+import com.tenants.plugin.TenantProperties;
+import com.tenants.plugin.annotation.TenantFilter;
+import com.tenants.plugin.core.config.TenantAutoConfiguration;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.Expression;

@@ -1,6 +1,6 @@
-package com.bitchain.tenants.plugin.util;
+package com.tenants.plugin.util;
 
-import com.bitchain.tenants.plugin.ex.TenantException;
+import com.tenants.plugin.ex.TenantException;
 import org.apache.ibatis.session.SqlSessionFactory;
 
 import java.lang.reflect.Field;

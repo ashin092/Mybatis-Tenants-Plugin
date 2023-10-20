@@ -173,11 +173,11 @@ public class MybatisPluginAutoConfiguration {
 ### Configuration Parameter Description
 
 Let's present an example using a .properties file:
-* tenant.filter-additional: Filter additional filtering suffix. Filtering compliance mapper method name + this value will also be effective to the rules of [Multi-tenant Filter - TenantFilter]. This configuration appears mainly to prevent the use of PageHelper + filters when, mapper method added a filter logo. And because PageHelper generates sql as sqlId+_COUNT, it fails to successfully filter, and finally the pagination is far from expected.
+* tenant.filter-additional: Filter additional filtering suffix. Filtering compliance mapper method name + this value will also be effective to the rules of [Multi-tenant Filter - TenantFilter]. This configuration appears mainly to prevent the use of PageHelper + filters when, mapper method added a filter logo. And because PageHelper generates sql as {sqlId + "_COUNT"}, it fails to successfully filter, and finally the pagination is far from expected.
 
 * tenant.interceptor-auto-register: Indicates whether the interceptor should automatically register.
 By default, the interceptor registers automatically when the software executes. However, in some cases, it may be necessary to manually register the interceptor. This variable provides the flexibility to enable or disable automatic registration behavior.
-If this variable is set to {@code true}, the interceptor will automatically register. If the value is {@code false}, the interceptor will not automatically register, and manual registration must be performed.
+If this variable is set to `true`, the interceptor will automatically register. If the value is `false`, the interceptor will not automatically register, and manual registration must be performed.
 
 * tenant.scan-mode: The multi-tenant sql interference mode. Auto automatic mode(default): Scan the entire library, and handle tables that have relevant multi-tenant fields automatically. This method will be slower to start than the specified mode, with the size of the number table gradually increasing.When starting. Assign specified mode: Do not automatically scan tables, and handle the tables in the tenant-include-tables list as multi-tenant tables for specific processing.
 

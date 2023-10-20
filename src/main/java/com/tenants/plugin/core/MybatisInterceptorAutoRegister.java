@@ -1,7 +1,7 @@
-package com.bitchain.tenants.plugin.core;
+package com.tenants.plugin.core;
 
-import com.bitchain.tenants.plugin.TenantProperties;
-import com.bitchain.tenants.plugin.core.interceptor.TenantSqlInterceptor;
+import com.tenants.plugin.TenantProperties;
+import com.tenants.plugin.core.interceptor.TenantSqlInterceptor;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Configuration;

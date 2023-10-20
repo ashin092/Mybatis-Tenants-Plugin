@@ -1,6 +1,6 @@
-package com.bitchain.tenants.plugin.core;
+package com.tenants.plugin.core;
 
-import com.bitchain.tenants.plugin.ex.TenantException;
+import com.tenants.plugin.ex.TenantException;
 
 /**
  * 这是一个表示租户用户标识的抽象类。

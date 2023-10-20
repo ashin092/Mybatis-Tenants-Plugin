@@ -1,11 +1,11 @@
-package com.bitchain.tenants.plugin.core.config;
+package com.tenants.plugin.core.config;
 
-import com.bitchain.tenants.plugin.TenantProperties;
-import com.bitchain.tenants.plugin.annotation.TenantFilter;
-import com.bitchain.tenants.plugin.comparator.TenantChainOrderComparator;
-import com.bitchain.tenants.plugin.core.TenantUserIdentity;
-import com.bitchain.tenants.plugin.ex.TenantException;
-import com.bitchain.tenants.plugin.util.MybatisUtils;
+import com.tenants.plugin.TenantProperties;
+import com.tenants.plugin.annotation.TenantFilter;
+import com.github.tenants.plugin.comparator.TenantChainOrderComparator;
+import com.tenants.plugin.core.TenantUserIdentity;
+import com.tenants.plugin.ex.TenantException;
+import com.tenants.plugin.util.MybatisUtils;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.omg.CORBA.SystemException;

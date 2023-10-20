@@ -1,4 +1,4 @@
-package com.bitchain.tenants.plugin.annotation;
+package com.tenants.plugin.annotation;
 
 import java.lang.annotation.*;
 

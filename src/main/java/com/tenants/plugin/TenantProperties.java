@@ -1,4 +1,4 @@
-package com.bitchain.tenants.plugin;
+package com.tenants.plugin;
 
 import org.apache.ibatis.plugin.Interceptor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -30,16 +30,21 @@ import java.util.List;
 public class TenantProperties {
 
     /**
-     * 多租户sql干涉模式。 Auto自动模式(默认)：扫描全库，存在符合多租户相关字段的表自动处理。
+     * 多租户表注册模式。 Auto自动模式(默认)：扫描全库，存在符合多租户相关字段的表自动处理。
      * 该方式启动时间会相较于指定模式慢，随着数库表大小逐渐增加。
      * Assign指定模式：不自动扫表，采用tenant-include-tables列表中的表作为多租户的表指定处理
      */
     private TenantMode scanMode = TenantMode.AUTO;
 
     /**
-     * 多租户指定表范围，自动模式下不生效
+     * 多租户指定的表，tenant.scan-mode=Auto下不生效
      */
     private List<String> targetTables = null;
+
+    /**
+     * 多租户指定排除的表
+     */
+    private List<String> excludeTables = null;
 
     /**
      * 多租户相关字段，可以指定多个.正常情况下应该只有一个，暂时预留兼容情况。
@@ -121,5 +126,13 @@ public class TenantProperties {
 
     public void setFilterAdditional(String filterAdditional) {
         this.filterAdditional = filterAdditional;
+    }
+
+    public List<String> getExcludeTables() {
+        return excludeTables;
+    }
+
+    public void setExcludeTables(List<String> excludeTables) {
+        this.excludeTables = excludeTables;
     }
 }
