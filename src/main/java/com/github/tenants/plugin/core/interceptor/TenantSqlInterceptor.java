@@ -75,7 +75,8 @@ import java.util.List;
 @Intercepts(
         {@Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}),
                 @Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class, CacheKey.class, BoundSql.class}),
-                @Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}),})
+                @Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}),
+        })
 public class TenantSqlInterceptor implements Interceptor {
 
     /**
@@ -105,20 +106,8 @@ public class TenantSqlInterceptor implements Interceptor {
         MappedStatement ms = (MappedStatement) args[0];
         // 取到的parameter可能是Map,看是否为@Param进行了多参数绑定，是则已被封装为一个Map
         Object parameter = args[1];
-        ResultHandler<?> resultHandler = (ResultHandler<?>) args[3];
-        RowBounds rowBounds = (RowBounds) args[2];
-        BoundSql boundSql;
-        CacheKey cacheKey;
-        // 根据参数个数，获取BoundSql和缓存key
-        if (args.length == 4) {
-            //  4个参数时，直接从参数中获取
-            boundSql = ms.getBoundSql(parameter);
-            cacheKey = executor.createCacheKey(ms, parameter, rowBounds, boundSql);
-        } else {
-            // 6个参数时，从提供的参数中提取
-            cacheKey = (CacheKey) args[4];
-            boundSql = (BoundSql) args[5];
-        }
+        BoundSql boundSql = ms.getBoundSql(parameter);
+        CacheKey cacheKey = this.getCacheKey(args, executor);
         SqlCommandType sqlCommandType = ms.getSqlCommandType();
         // 检查租户设置，根据过滤注解，可能需要跳过本次sql处理
         if (!CollectionUtils.isEmpty(this.getTenantConfig().getNameNFilter())) {
@@ -127,7 +116,7 @@ public class TenantSqlInterceptor implements Interceptor {
             if (tenantFilter != null && !tenantFilter.exclude()) {
                 // 使用注解进行不处理的跳过到下个责任处理点
                 if (SqlCommandType.SELECT.equals(sqlCommandType)) {
-                    return executor.query(ms, parameter, rowBounds, resultHandler, cacheKey, boundSql);
+                    return executor.query(ms, parameter, (RowBounds) args[2],  (ResultHandler<?>) args[3], cacheKey, boundSql);
                 } else {
                     return executor.update(ms, parameter);
                 }
@@ -161,11 +150,11 @@ public class TenantSqlInterceptor implements Interceptor {
         } catch (JSQLParserException e) {
             // 解析失败，忽略并执行原始SQL
 //            log.info("多租户信息处理失败，执行原sql", e);
-//            return executor.query(ms, parameter, rowBounds, resultHandler, cacheKey, boundSql);
+//            return executor.query(ms, parameter, (RowBounds) args[2], resultHandler, cacheKey, boundSql);
         }
         // 将处理过的SQL语句设置到参数中，代理完成
         if (SqlCommandType.SELECT.equals(sqlCommandType)) {
-            return executor.query(ms, parameter, rowBounds, resultHandler, cacheKey, boundSql);
+            return executor.query(ms, parameter, (RowBounds) args[2],  (ResultHandler<?>) args[3], cacheKey, boundSql);
         } else {
             return executor.update(ms, parameter);
         }
@@ -298,10 +287,10 @@ public class TenantSqlInterceptor implements Interceptor {
                 ExpressionList expressionList = (ExpressionList) itemsList;
 
                 // 在最后添加字段
-                columnList.add(new Column("TENANAT_ID"));
+                columnList.add(new Column(tenantProperties.getTargetColumns().get(0)));
 
                 // 在对应的取值列表中添加值
-                expressionList.getExpressions().add(new LongValue("1"));
+                expressionList.getExpressions().add(new LongValue(this.getTenantConfig().tenantUserImplement.doGetTenantUserIdentity()));
             }
 
             // 对于 INSERT SELECT 语句
@@ -313,8 +302,8 @@ public class TenantSqlInterceptor implements Interceptor {
                     PlainSelect plainSelect = (PlainSelect) selectBody;
 
                     SelectExpressionItem selectItem = new SelectExpressionItem();
-                    selectItem.setExpression(new LongValue("1"));
-                    selectItem.setAlias(new Alias("TENANT_ID_TEMP"));
+                    selectItem.setExpression(new LongValue(this.getTenantConfig().tenantUserImplement.doGetTenantUserIdentity()));
+                    selectItem.setAlias(new Alias(tenantProperties.getTargetColumns().get(0) + "_ALIAS_TEMP"));
 
                     // 在select子句中添加新的select项
                     plainSelect.getSelectItems().add(selectItem);
@@ -343,6 +332,18 @@ public class TenantSqlInterceptor implements Interceptor {
         msBuilder.cache(ms.getCache());
 
         return msBuilder.build();
+    }
+
+    public CacheKey getCacheKey(Object[] args, Executor executor) {
+        if (args.length == 4) {
+            //  4个参数时，直接从参数中获取
+            MappedStatement ms = (MappedStatement) args[0];
+            return executor.createCacheKey(ms, args[1], (RowBounds) args[2], ms.getBoundSql(args[1]));
+        } else if (args.length == 6) {
+            // 6个参数时，从提供的参数中提取
+            return (CacheKey) args[4];
+        }
+        return null;
     }
 
     /**
