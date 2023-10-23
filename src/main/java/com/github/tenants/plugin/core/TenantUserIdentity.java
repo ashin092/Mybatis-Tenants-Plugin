@@ -1,6 +1,6 @@
-package com.tenants.plugin.core;
+package com.github.tenants.plugin.core;
 
-import com.tenants.plugin.ex.TenantException;
+import com.github.tenants.plugin.ex.TenantException;
 
 /**
  * 这是一个表示租户用户标识的抽象类。

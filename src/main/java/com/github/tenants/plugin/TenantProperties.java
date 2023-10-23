@@ -1,4 +1,4 @@
-package com.tenants.plugin;
+package com.github.tenants.plugin;
 
 import org.apache.ibatis.plugin.Interceptor;
 import org.springframework.boot.context.properties.ConfigurationProperties;

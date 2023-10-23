@@ -1,6 +1,6 @@
-package com.tenants.plugin.annotation;
+package com.github.tenants.plugin.annotation;
 
-import com.tenants.plugin.core.TenantUserIdentity;
+import com.github.tenants.plugin.core.TenantUserIdentity;
 
 import java.lang.annotation.*;
 

@@ -1,1 +1,1 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.tenants.plugin.core.config.TenantAutoConfiguration
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.github.tenants.plugin.core.config.TenantAutoConfiguration

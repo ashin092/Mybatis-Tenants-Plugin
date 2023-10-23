@@ -2,8 +2,8 @@
   "groups": [
     {
       "name": "tenant",
-      "type": "com.tenants.plugin.TenantProperties",
-      "sourceType": "com.tenants.plugin.TenantProperties"
+      "type": "com.github.tenants.plugin.TenantProperties",
+      "sourceType": "com.github.tenants.plugin.TenantProperties"
     }
   ],
   "properties": [
@@ -11,38 +11,38 @@
       "name": "tenant.exclude-tables",
       "type": "java.util.List<java.lang.String>",
       "description": "多租户指定排除的表",
-      "sourceType": "com.tenants.plugin.TenantProperties"
+      "sourceType": "com.github.tenants.plugin.TenantProperties"
     },
     {
       "name": "tenant.filter-additional",
       "type": "java.lang.String",
       "description": "过滤器附加过滤后缀。 过滤符合mapper方法名 + 该项值的也会生效于【多租户过滤器 - TenantFilter】的规则。 该项配置的出现主要是为了防止使用PageHelper + 过滤器的时候，mapper method 加上了过滤标识。又因为PageHelper生成的sql为sqlId+_COUNT,导致无法成功过滤， 最后分页与预期大不同的情况",
-      "sourceType": "com.tenants.plugin.TenantProperties"
+      "sourceType": "com.github.tenants.plugin.TenantProperties"
     },
     {
       "name": "tenant.interceptor-auto-register",
       "type": "java.lang.Boolean",
       "description": "指示拦截器是否应自动注册。 <p> 默认情况下，拦截器在软件执行时自动注册。 但是，在某些情况下，可能需要手动注册拦截器。 此变量提供了启用或禁用自动注册行为的灵活性。 <\/p> <p> 如果此变量的值设置为 {@code true}，拦截器将自动注册。 如果值为 {@code false}，则拦截器不会自动注册，必须执行手动注册。 <\/p> @see Interceptor",
-      "sourceType": "com.tenants.plugin.TenantProperties",
+      "sourceType": "com.github.tenants.plugin.TenantProperties",
       "defaultValue": true
     },
     {
       "name": "tenant.scan-mode",
-      "type": "com.tenants.plugin.TenantProperties$TenantMode",
+      "type": "com.github.tenants.plugin.TenantProperties$TenantMode",
       "description": "多租户表注册模式。 Auto自动模式(默认)：扫描全库，存在符合多租户相关字段的表自动处理。 该方式启动时间会相较于指定模式慢，随着数库表大小逐渐增加。 Assign指定模式：不自动扫表，采用tenant-include-tables列表中的表作为多租户的表指定处理",
-      "sourceType": "com.tenants.plugin.TenantProperties"
+      "sourceType": "com.github.tenants.plugin.TenantProperties"
     },
     {
       "name": "tenant.target-columns",
       "type": "java.util.List<java.lang.String>",
       "description": "多租户相关字段，可以指定多个.正常情况下应该只有一个，暂时预留兼容情况。",
-      "sourceType": "com.tenants.plugin.TenantProperties"
+      "sourceType": "com.github.tenants.plugin.TenantProperties"
     },
     {
       "name": "tenant.target-tables",
       "type": "java.util.List<java.lang.String>",
       "description": "多租户指定的表，tenant.scan-mode=Auto下不生效",
-      "sourceType": "com.tenants.plugin.TenantProperties"
+      "sourceType": "com.github.tenants.plugin.TenantProperties"
     }
   ],
   "hints": []

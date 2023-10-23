@@ -1,4 +1,4 @@
-package com.tenants.plugin.ex;
+package com.github.tenants.plugin.ex;
 
 /**
  * 表示特定于租户框架的异常。

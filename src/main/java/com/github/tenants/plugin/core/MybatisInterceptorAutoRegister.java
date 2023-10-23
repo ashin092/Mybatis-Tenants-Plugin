@@ -1,7 +1,7 @@
-package com.tenants.plugin.core;
+package com.github.tenants.plugin.core;
 
-import com.tenants.plugin.TenantProperties;
-import com.tenants.plugin.core.interceptor.TenantSqlInterceptor;
+import com.github.tenants.plugin.TenantProperties;
+import com.github.tenants.plugin.core.interceptor.TenantSqlInterceptor;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Configuration;

@@ -1,23 +1,29 @@
-package com.tenants.plugin.core.interceptor;
+package com.github.tenants.plugin.core.interceptor;
 
-import com.tenants.plugin.TenantProperties;
-import com.tenants.plugin.annotation.TenantFilter;
-import com.tenants.plugin.core.config.TenantAutoConfiguration;
+import com.github.tenants.plugin.TenantProperties;
+import com.github.tenants.plugin.annotation.TenantFilter;
+import com.github.tenants.plugin.core.config.TenantAutoConfiguration;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
+import net.sf.jsqlparser.expression.operators.relational.ItemsList;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.*;
+import org.apache.ibatis.builder.StaticSqlSource;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
+import org.apache.ibatis.mapping.SqlCommandType;
+import org.apache.ibatis.mapping.SqlSource;
 import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.plugin.Intercepts;
 import org.apache.ibatis.plugin.Invocation;
@@ -66,7 +72,10 @@ import java.util.List;
  * 注意：此类的实现可能因多租户数据体系结构的特定要求而异。
  * @since 2023/10/11 10:23
  */
-@Intercepts({@Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}), @Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class, CacheKey.class, BoundSql.class}),})
+@Intercepts(
+        {@Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}),
+                @Signature(type = Executor.class, method = "query", args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class, CacheKey.class, BoundSql.class}),
+                @Signature(type = Executor.class, method = "update", args = {MappedStatement.class, Object.class}),})
 public class TenantSqlInterceptor implements Interceptor {
 
     /**
@@ -110,35 +119,56 @@ public class TenantSqlInterceptor implements Interceptor {
             cacheKey = (CacheKey) args[4];
             boundSql = (BoundSql) args[5];
         }
+        SqlCommandType sqlCommandType = ms.getSqlCommandType();
         // 检查租户设置，根据过滤注解，可能需要跳过本次sql处理
         if (!CollectionUtils.isEmpty(this.getTenantConfig().getNameNFilter())) {
             String sqlId = ms.getId().replaceFirst(tenantProperties.getFilterAdditional() + "$", "");
             TenantFilter tenantFilter = this.getTenantConfig().getNameNFilter().get(sqlId);
             if (tenantFilter != null && !tenantFilter.exclude()) {
                 // 使用注解进行不处理的跳过到下个责任处理点
-                return executor.query(ms, parameter, rowBounds, resultHandler, cacheKey, boundSql);
+                if (SqlCommandType.SELECT.equals(sqlCommandType)) {
+                    return executor.query(ms, parameter, rowBounds, resultHandler, cacheKey, boundSql);
+                } else {
+                    return executor.update(ms, parameter);
+                }
             }
         }
-
         // 否则，开始处理SQL，添加租户ID
         String tenantsSql = boundSql.getSql();
         try {
-            // 解析SQL语句并为其添加租户表达式
+            // 使用JSQLParser解析原始的SQL语句
             Statement stmt = CCJSqlParserUtil.parse(tenantsSql);
-            Select selectStmt = (Select) stmt;
-            SelectBody selectBody = selectStmt.getSelectBody();
-            addTenantExpress2SB(selectBody, this.getTenantConfig().tenantUserImplement.doGetTenantUserIdentity());
-            tenantsSql = selectBody.toString();
+
+            // 判断解析出的SQL语句类型
+            if (SqlCommandType.SELECT.equals(sqlCommandType)) {
+                Select selectStmt = (Select) stmt;
+                SelectBody selectBody = selectStmt.getSelectBody();
+
+                this.handleSelectStmt(selectBody, this.getTenantConfig().tenantUserImplement.doGetTenantUserIdentity());
+                tenantsSql = selectBody.toString();
+
+                // 通过反射将处理后的SQL语句设置回BoundSql对象，供后续的查询调用
+                Field field = boundSql.getClass().getDeclaredField("sql");
+                field.setAccessible(true);
+                field.set(boundSql, tenantsSql);
+            } else if (SqlCommandType.INSERT.equals(sqlCommandType)) {
+                // 如果是INSERT语句，进行相应的处理
+                this.handleSelectStmt(stmt);
+                // updateMappedStatementBuilder方法将处理后的SQL语句设置到MappedStatement对象中
+                // 这样后续的插入操作会使用新的SQL语句
+                ms = this.updateMappedStatementBuilder(ms, stmt.toString(), boundSql);
+            }
         } catch (JSQLParserException e) {
             // 解析失败，忽略并执行原始SQL
 //            log.info("多租户信息处理失败，执行原sql", e);
-            return executor.query(ms, parameter, rowBounds, resultHandler, cacheKey, boundSql);
+//            return executor.query(ms, parameter, rowBounds, resultHandler, cacheKey, boundSql);
         }
-        // 将处理过的SQL语句设置回BoundSql然后执行查询
-        Field field = boundSql.getClass().getDeclaredField("sql");
-        field.setAccessible(true);
-        field.set(boundSql, tenantsSql);
-        return executor.query(ms, parameter, rowBounds, resultHandler, cacheKey, boundSql);
+        // 将处理过的SQL语句设置到参数中，代理完成
+        if (SqlCommandType.SELECT.equals(sqlCommandType)) {
+            return executor.query(ms, parameter, rowBounds, resultHandler, cacheKey, boundSql);
+        } else {
+            return executor.update(ms, parameter);
+        }
     }
 
     /**
@@ -181,7 +211,7 @@ public class TenantSqlInterceptor implements Interceptor {
      * @param selectBody 查询的SelectBody对象
      * @param tenantId   租户ID
      */
-    private void addTenantExpress2SB(SelectBody selectBody, long tenantId) {
+    private void handleSelectStmt(SelectBody selectBody, long tenantId) {
         // 如果SQL查询语句是纯的Select语句，无Union或其他set操作
         if (selectBody instanceof PlainSelect) {
             PlainSelect plainSelect = (PlainSelect) selectBody;
@@ -193,7 +223,7 @@ public class TenantSqlInterceptor implements Interceptor {
             if (fromItem instanceof SubSelect) {
                 SubSelect subSelect = (SubSelect) fromItem;
                 SelectBody subSelectBody = subSelect.getSelectBody();
-                addTenantExpress2SB(subSelectBody, tenantId);
+                handleSelectStmt(subSelectBody, tenantId);
             }
 
             // 处理每个join不分
@@ -207,7 +237,7 @@ public class TenantSqlInterceptor implements Interceptor {
                     if (fromItem instanceof SubSelect) {
                         SubSelect subSelect = (SubSelect) fromItem;
                         SelectBody subSelectBody = subSelect.getSelectBody();
-                        addTenantExpress2SB(subSelectBody, tenantId);
+                        handleSelectStmt(subSelectBody, tenantId);
                     }
 
                     //如果join的右边部分和指定的租户表相同，给这部分语句添加租户ID
@@ -230,7 +260,7 @@ public class TenantSqlInterceptor implements Interceptor {
                         join.setOnExpressions(Collections.singleton(newExpression));
                     }
                     if (fromItem instanceof SubSelect) {
-                        addTenantExpress2SB(((SubSelect) fromItem).getSelectBody(), tenantId);
+                        handleSelectStmt(((SubSelect) fromItem).getSelectBody(), tenantId);
                     }
                 }
             }
@@ -249,9 +279,70 @@ public class TenantSqlInterceptor implements Interceptor {
         } else if (selectBody instanceof SetOperationList) {
             List<SelectBody> selectBodies = ((SetOperationList) selectBody).getSelects();
             for (SelectBody body : selectBodies) {
-                addTenantExpress2SB(body, tenantId);
+                handleSelectStmt(body, tenantId);
             }
         }
+    }
+
+
+    public void handleSelectStmt(Statement stmt) {
+        if (stmt instanceof Insert) {
+            Insert insertStatement = (Insert) stmt;
+
+            // Insert的待添加字段和取值列表
+            ItemsList itemsList = insertStatement.getItemsList();
+            List<Column> columnList = insertStatement.getColumns();
+
+            // 对于普通的INSERT语句
+            if (itemsList instanceof ExpressionList) {
+                ExpressionList expressionList = (ExpressionList) itemsList;
+
+                // 在最后添加字段
+                columnList.add(new Column("TENANAT_ID"));
+
+                // 在对应的取值列表中添加值
+                expressionList.getExpressions().add(new LongValue("1"));
+            }
+
+            // 对于 INSERT SELECT 语句
+            else if (itemsList instanceof SubSelect) {
+                SubSelect subSelect = (SubSelect) itemsList;
+                SelectBody selectBody = subSelect.getSelectBody();
+                // 如果子查询是 PlainSelect
+                if (selectBody instanceof PlainSelect) {
+                    PlainSelect plainSelect = (PlainSelect) selectBody;
+
+                    SelectExpressionItem selectItem = new SelectExpressionItem();
+                    selectItem.setExpression(new LongValue("1"));
+                    selectItem.setAlias(new Alias("TENANT_ID_TEMP"));
+
+                    // 在select子句中添加新的select项
+                    plainSelect.getSelectItems().add(selectItem);
+                }
+
+            }
+        }
+    }
+
+
+    private MappedStatement updateMappedStatementBuilder(MappedStatement ms, String modifiedSql, BoundSql boundSql) {
+        SqlSource sqlSource = new StaticSqlSource(ms.getConfiguration(), modifiedSql, boundSql.getParameterMappings());
+
+        // 创建新的 MappedStatement
+        MappedStatement.Builder msBuilder = new MappedStatement.Builder(ms.getConfiguration(), ms.getId(), sqlSource, ms.getSqlCommandType());
+
+        // 设置其它属性
+        msBuilder.resource(ms.getResource());
+        msBuilder.fetchSize(ms.getFetchSize());
+        msBuilder.statementType(ms.getStatementType());
+        msBuilder.keyGenerator(ms.getKeyGenerator());
+
+        msBuilder.timeout(ms.getTimeout());
+        msBuilder.parameterMap(ms.getParameterMap());
+        msBuilder.resultMaps(ms.getResultMaps());
+        msBuilder.cache(ms.getCache());
+
+        return msBuilder.build();
     }
 
     /**

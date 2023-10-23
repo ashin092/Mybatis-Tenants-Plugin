@@ -1,11 +1,11 @@
-package com.tenants.plugin.core.config;
+package com.github.tenants.plugin.core.config;
 
-import com.tenants.plugin.TenantProperties;
-import com.tenants.plugin.annotation.TenantFilter;
+import com.github.tenants.plugin.ex.TenantException;
+import com.github.tenants.plugin.util.MybatisUtils;
+import com.github.tenants.plugin.TenantProperties;
+import com.github.tenants.plugin.annotation.TenantFilter;
 import com.github.tenants.plugin.comparator.TenantChainOrderComparator;
-import com.tenants.plugin.core.TenantUserIdentity;
-import com.tenants.plugin.ex.TenantException;
-import com.tenants.plugin.util.MybatisUtils;
+import com.github.tenants.plugin.core.TenantUserIdentity;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.omg.CORBA.SystemException;

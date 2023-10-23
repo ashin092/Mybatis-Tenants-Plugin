@@ -1,7 +1,7 @@
 package com.github.tenants.plugin.comparator;
 
-import com.tenants.plugin.annotation.TenantChainOrder;
-import com.tenants.plugin.core.TenantUserIdentity;
+import com.github.tenants.plugin.annotation.TenantChainOrder;
+import com.github.tenants.plugin.core.TenantUserIdentity;
 
 import java.util.Comparator;
 

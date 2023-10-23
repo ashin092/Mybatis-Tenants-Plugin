@@ -1,6 +1,6 @@
-package com.tenants.plugin.util;
+package com.github.tenants.plugin.util;
 
-import com.tenants.plugin.ex.TenantException;
+import com.github.tenants.plugin.ex.TenantException;
 import org.apache.ibatis.session.SqlSessionFactory;
 
 import java.lang.reflect.Field;

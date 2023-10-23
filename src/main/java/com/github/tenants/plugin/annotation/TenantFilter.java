@@ -1,4 +1,4 @@
-package com.tenants.plugin.annotation;
+package com.github.tenants.plugin.annotation;
 
 import java.lang.annotation.*;
 
