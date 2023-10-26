@@ -1,4 +1,4 @@
-## [1.0.1] - under development
+## [1.0.1] - under development(目前版本具有重大bug)
 ### Removed
 - 依赖关系 `spring-boot-starter-jdbc`
 ### Changed
