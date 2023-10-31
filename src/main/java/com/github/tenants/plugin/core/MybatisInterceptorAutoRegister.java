@@ -3,10 +3,10 @@ package com.github.tenants.plugin.core;
 import com.github.tenants.plugin.TenantProperties;
 import com.github.tenants.plugin.core.interceptor.TenantSqlInterceptor;
 import org.apache.ibatis.session.SqlSessionFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.util.List;
 
 /**
@@ -34,13 +34,15 @@ import java.util.List;
  * @author xierh
  * @since 2023/10/17 17:26
  */
-@Configuration
+@Component
 @ConditionalOnClass({TenantProperties.class, SqlSessionFactory.class})
-public class MybatisInterceptorAutoRegister {
+public class MybatisInterceptorAutoRegister implements InitializingBean {
 
     final TenantProperties tenantProperties;
 
     final List<SqlSessionFactory> sqlSessionFactoryList;
+
+    final TenantSqlInterceptor tenantSqlInterceptor;
 
     /**
      * 此方法将 TenantSqlInterceptor 注册为所有已配置的 SqlSessionFactory 实例的侦听器。
@@ -51,19 +53,23 @@ public class MybatisInterceptorAutoRegister {
      *
      * @see TenantProperties#interceptorAutoRegister
      */
-    @PostConstruct
     public void mybatisInterceptorRegister() {
         if (!tenantProperties.isInterceptorAutoRegister()) {
             return;
         }
-        TenantSqlInterceptor tenantSqlInterceptor = new TenantSqlInterceptor();
         for (SqlSessionFactory sqlSessionFactory : sqlSessionFactoryList) {
             sqlSessionFactory.getConfiguration().addInterceptor(tenantSqlInterceptor);
         }
     }
 
-    public MybatisInterceptorAutoRegister(TenantProperties tenantProperties, List<SqlSessionFactory> sqlSessionFactoryList) {
+    public MybatisInterceptorAutoRegister(TenantProperties tenantProperties, List<SqlSessionFactory> sqlSessionFactoryList, TenantSqlInterceptor tenantSqlInterceptor) {
         this.tenantProperties = tenantProperties;
         this.sqlSessionFactoryList = sqlSessionFactoryList;
+        this.tenantSqlInterceptor = tenantSqlInterceptor;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        this.mybatisInterceptorRegister();
     }
 }

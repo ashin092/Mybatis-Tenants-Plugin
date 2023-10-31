@@ -29,6 +29,7 @@ public class MybatisUtils {
         try {
             Class<?> mapperRegistryClass = null;
             try {
+                // 适配mybatisPlus
                 mapperRegistryClass = Class.forName("com.baomidou.mybatisplus.core.MybatisMapperRegistry");
             } catch (ClassNotFoundException ex) {
                 mapperRegistryClass = Class.forName("org.apache.ibatis.binding.MapperRegistry");
@@ -39,22 +40,32 @@ public class MybatisUtils {
             }
             Field mapperRegistryField = mapperRegistryClass.getDeclaredField("knownMappers");
             mapperRegistryField.setAccessible(true);
-
-            Field mybatisMapperRegistryField;
-            try {
-                mybatisMapperRegistryField = sqlSessionFactory.getConfiguration().getClass()
-                        .getDeclaredField("mapperRegistry");
-            } catch (NoSuchFieldException ex) {
-                mybatisMapperRegistryField = sqlSessionFactory.getConfiguration().getClass()
-                        .getDeclaredField("mybatisMapperRegistry");
-            }
-            mybatisMapperRegistryField.setAccessible(true);
-            Object mapperRegistryInstance = mybatisMapperRegistryField.get(sqlSessionFactory.getConfiguration());
-
+            Object mapperRegistryInstance = getMapperRegistryInstance(sqlSessionFactory);
             knownMappers = (Map<Class<?>, ?>) mapperRegistryField.get(mapperRegistryInstance);
         } catch (Exception e) {
             throw new TenantException("unable to get mybatis mapper list", e);
         }
         return knownMappers;
+    }
+
+    /**
+     * 从给定的 SQL 会话工厂中获取“MapperRegistry”实例。
+     *
+     * @param sqlSessionFactory SQL 会话工厂
+     * @return MapperRegistry 实例
+     * @throws NoSuchFieldException   如果找不到“mapperRegistry”或“mybatisMapperRegistry”字段
+     * @throws IllegalAccessException 如果无法访问“mapperRegistry”或“mybatisMapperRegistry”字段
+     */
+    private static Object getMapperRegistryInstance(SqlSessionFactory sqlSessionFactory) throws NoSuchFieldException, IllegalAccessException {
+        Field mybatisMapperRegistryField;
+        try {
+            mybatisMapperRegistryField = sqlSessionFactory.getConfiguration().getClass()
+                    .getDeclaredField("mapperRegistry");
+        } catch (NoSuchFieldException ex) {
+            mybatisMapperRegistryField = sqlSessionFactory.getConfiguration().getClass()
+                    .getDeclaredField("mybatisMapperRegistry");
+        }
+        mybatisMapperRegistryField.setAccessible(true);
+        return mybatisMapperRegistryField.get(sqlSessionFactory.getConfiguration());
     }
 }

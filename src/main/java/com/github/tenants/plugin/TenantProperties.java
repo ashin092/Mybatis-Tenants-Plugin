@@ -2,7 +2,6 @@ package com.github.tenants.plugin;
 
 import org.apache.ibatis.plugin.Interceptor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
@@ -25,7 +24,6 @@ import java.util.List;
  * @author xierh
  * @since 2023/10/11 10:23
  */
-@Configuration
 @ConfigurationProperties(prefix = "tenant")
 public class TenantProperties {
 

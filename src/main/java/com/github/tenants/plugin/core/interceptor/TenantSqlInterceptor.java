@@ -2,7 +2,7 @@ package com.github.tenants.plugin.core.interceptor;
 
 import com.github.tenants.plugin.TenantProperties;
 import com.github.tenants.plugin.annotation.TenantFilter;
-import com.github.tenants.plugin.core.config.TenantAutoConfiguration;
+import com.github.tenants.plugin.cache.PluginCache;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.Expression;
@@ -87,9 +87,9 @@ public class TenantSqlInterceptor implements Interceptor {
      * @see TenantSqlInterceptor#getTenantConfig
      * 它是一个单例类，只建议使用“getTenantConfig（）”方法访问。
      */
-    static TenantAutoConfiguration configuration;
+    private PluginCache pluginCache;
 
-    static TenantProperties tenantProperties = null;
+    private TenantProperties tenantProperties;
 
     /**
      * MyBatis拦截器，用于添加租户隔离信息，实现数据隔离。
@@ -101,7 +101,6 @@ public class TenantSqlInterceptor implements Interceptor {
     public Object intercept(Invocation invocation) throws Throwable {
         Executor executor = (Executor) invocation.getTarget();
         Object[] args = invocation.getArgs();
-
         // 获取查询语句相关信息
         MappedStatement ms = (MappedStatement) args[0];
         // 取到的parameter可能是Map,看是否为@Param进行了多参数绑定，是则已被封装为一个Map
@@ -116,7 +115,7 @@ public class TenantSqlInterceptor implements Interceptor {
             if (tenantFilter != null && !tenantFilter.exclude()) {
                 // 使用注解进行不处理的跳过到下个责任处理点
                 if (SqlCommandType.SELECT.equals(sqlCommandType)) {
-                    return executor.query(ms, parameter, (RowBounds) args[2],  (ResultHandler<?>) args[3], cacheKey, boundSql);
+                    return executor.query(ms, parameter, (RowBounds) args[2], (ResultHandler<?>) args[3], cacheKey, boundSql);
                 } else {
                     return executor.update(ms, parameter);
                 }
@@ -142,19 +141,15 @@ public class TenantSqlInterceptor implements Interceptor {
                 field.set(boundSql, tenantsSql);
             } else if (SqlCommandType.INSERT.equals(sqlCommandType)) {
                 // 如果是INSERT语句，进行相应的处理
-                this.handleSelectStmt(stmt);
-                // updateMappedStatementBuilder方法将处理后的SQL语句设置到MappedStatement对象中
-                // 这样后续的插入操作会使用新的SQL语句
-                ms = this.updateMappedStatementBuilder(ms, stmt.toString(), boundSql);
+                this.handleInsertStmt(stmt);
             }
         } catch (JSQLParserException e) {
             // 解析失败，忽略并执行原始SQL
-//            log.info("多租户信息处理失败，执行原sql", e);
-//            return executor.query(ms, parameter, (RowBounds) args[2], resultHandler, cacheKey, boundSql);
+            //log.info("多租户信息处理失败，执行原sql", e);=
         }
         // 将处理过的SQL语句设置到参数中，代理完成
         if (SqlCommandType.SELECT.equals(sqlCommandType)) {
-            return executor.query(ms, parameter, (RowBounds) args[2],  (ResultHandler<?>) args[3], cacheKey, boundSql);
+            return executor.query(ms, parameter, (RowBounds) args[2], (ResultHandler<?>) args[3], cacheKey, boundSql);
         } else {
             return executor.update(ms, parameter);
         }
@@ -274,10 +269,12 @@ public class TenantSqlInterceptor implements Interceptor {
     }
 
 
-    public void handleSelectStmt(Statement stmt) {
+    public void handleInsertStmt(Statement stmt) {
         if (stmt instanceof Insert) {
             Insert insertStatement = (Insert) stmt;
-
+            if (!tenantProperties.getTargetTables().contains(insertStatement.getTable().getFullyQualifiedName())) {
+                return;
+            }
             // Insert的待添加字段和取值列表
             ItemsList itemsList = insertStatement.getItemsList();
             List<Column> columnList = insertStatement.getColumns();
@@ -308,7 +305,6 @@ public class TenantSqlInterceptor implements Interceptor {
                     // 在select子句中添加新的select项
                     plainSelect.getSelectItems().add(selectItem);
                 }
-
             }
         }
     }
@@ -352,11 +348,12 @@ public class TenantSqlInterceptor implements Interceptor {
      *
      * @return 租户配置对象
      */
-    private TenantAutoConfiguration getTenantConfig() {
-        if (TenantSqlInterceptor.configuration == null) {
-            TenantSqlInterceptor.configuration = TenantAutoConfiguration.getInstance();
-            TenantSqlInterceptor.tenantProperties = TenantSqlInterceptor.configuration.getTenantProperties();
+    private PluginCache getTenantConfig() {
+        if (tenantProperties == null || pluginCache == null) {
+            PluginCache inst = PluginCache.getInst();
+            this.pluginCache = inst;
+            this.tenantProperties = inst.getTenantProperties();
         }
-        return configuration;
+        return pluginCache;
     }
 }

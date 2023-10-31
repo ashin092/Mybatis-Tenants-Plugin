@@ -1,20 +1,24 @@
 package com.github.tenants.plugin.core.config;
 
-import com.github.tenants.plugin.ex.TenantException;
-import com.github.tenants.plugin.util.MybatisUtils;
 import com.github.tenants.plugin.TenantProperties;
 import com.github.tenants.plugin.annotation.TenantFilter;
+import com.github.tenants.plugin.cache.PluginCache;
 import com.github.tenants.plugin.comparator.TenantChainOrderComparator;
+import com.github.tenants.plugin.core.MybatisInterceptorAutoRegister;
 import com.github.tenants.plugin.core.TenantUserIdentity;
+import com.github.tenants.plugin.core.interceptor.TenantSqlInterceptor;
+import com.github.tenants.plugin.ex.TenantException;
+import com.github.tenants.plugin.mapper.StructureMapper;
+import com.github.tenants.plugin.util.MybatisUtils;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.omg.CORBA.SystemException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import javax.annotation.PostConstruct;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -33,8 +37,6 @@ import java.util.*;
 @ConditionalOnClass({SqlSessionFactory.class, SqlSessionFactory.class, TenantProperties.class})
 public class TenantAutoConfiguration {
 
-    private static TenantAutoConfiguration instance = null;
-
     public TenantUserIdentity tenantUserImplement;
 
     /**
@@ -42,6 +44,8 @@ public class TenantAutoConfiguration {
      * 由于实现的是mybatis的intercept，运行时获取方法上的注解比较麻烦，不如直接先载入内存。
      */
     private Map<String, TenantFilter> nameNFilter;
+
+    final List<SqlSessionFactory> sqlSessionFactoryList;
 
     final SqlSessionFactory sqlSessionFactory;
 
@@ -54,8 +58,8 @@ public class TenantAutoConfiguration {
      *
      * @throws SystemException 如果目标租户列配置为空
      */
-    @PostConstruct
-    public void init() {
+    @Bean
+    public TenantSqlInterceptor tenantSqlInterceptorReg() {
         if (tenantProperties.getTargetColumns() == null) {
             throw new TenantException("no multi tenant related fields are specified");
         }
@@ -73,21 +77,26 @@ public class TenantAutoConfiguration {
                 }
             }
             // 创建 SqlSession
-            try(SqlSession sqlSession = sqlSessionFactory.openSession()) {
+            try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+                org.apache.ibatis.session.Configuration configuration = sqlSession.getConfiguration();
+                if (!configuration.hasMapper(StructureMapper.class)) {
+                    configuration.addMapper(StructureMapper.class);
+                }
+                StructureMapper structureMapper = sqlSession.getMapper(StructureMapper.class);
                 for (String targetColumn : tenantProperties.getTargetColumns()) {
-                    String sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_NAME = #{columnName}";
-                    List<String> tableNames = sqlSession.selectList(sql, Collections.singletonMap("columnName", targetColumn));
+                    List<String> tableNames = structureMapper.queryTablesByColumnName(targetColumn);
                     tenantProperties.getTargetTables().addAll(tableNames);
                 }
             }
         }
-        TenantAutoConfiguration.instance = this;
         this.frameworkStart();
+        new PluginCache(nameNFilter, tenantProperties, tenantUserImplement);
+        return new TenantSqlInterceptor();
     }
 
-
-    public static TenantAutoConfiguration getInstance() {
-        return TenantAutoConfiguration.instance;
+    @Bean
+    public MybatisInterceptorAutoRegister miaReg(TenantSqlInterceptor tenantSqlInterceptor) {
+        return new MybatisInterceptorAutoRegister(tenantProperties, sqlSessionFactoryList, tenantSqlInterceptor);
     }
 
     /**
@@ -121,7 +130,9 @@ public class TenantAutoConfiguration {
         return this.tenantProperties;
     }
 
-    public TenantAutoConfiguration(SqlSessionFactory sqlSessionFactory, ApplicationContext context, TenantProperties tenantProperties) {
+
+    public TenantAutoConfiguration(List<SqlSessionFactory> sqlSessionFactoryList, SqlSessionFactory sqlSessionFactory, ApplicationContext context, TenantProperties tenantProperties) {
+        this.sqlSessionFactoryList = sqlSessionFactoryList;
         this.sqlSessionFactory = sqlSessionFactory;
         this.context = context;
         this.tenantProperties = tenantProperties;
