@@ -15,8 +15,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * PluginCache 是一个类，用于存储插件信息的缓存。
+ *
  * @author xierh
- * @since 2023/10/31 17:00
+ *  * @since 2023/10/31 17:00
  */
 public class PluginCache {
 
@@ -32,6 +34,15 @@ public class PluginCache {
 
     public TenantUserIdentity tenantUserImplement;
 
+    /**
+     * 使用给定的参数构造一个 PluginCache 对象。
+     *
+     * @param sqlSessionFactoryList 要从中检索映射器注册表的 SqlSessionFactory 对象的列表
+     * @param tenantProperties 包含多租户相关字段和设置的 TenantProperties 对象
+     * @param tenantUserImplement 用于实现多租户的 TenantUserIdentity 对象
+     *
+     * @throws TenantException 如果 tenantProperties 中未指定多租户相关字段
+     */
     public PluginCache(List<SqlSessionFactory> sqlSessionFactoryList, TenantProperties tenantProperties, TenantUserIdentity tenantUserImplement) {
         if (tenantProperties.getTargetColumns() == null) {
             throw new TenantException("no multi tenant related fields are specified");

@@ -68,6 +68,15 @@ public class MybatisInterceptorAutoRegister implements InitializingBean {
         this.tenantSqlInterceptor = tenantSqlInterceptor;
     }
 
+    /**
+     * 此方法在设置完所有 Bean 属性后调用，通常用于执行初始化。
+     * 调用 {@link #mybatisInterceptorRegister()} 方法将 TenantSqlInterceptor 注册为侦听器
+     * 适用于所有已配置的 SqlSessionFactory 实例。
+     *
+     * @throws Exception 如果在初始化过程中发生异常
+     *
+     * @see #mybatisInterceptorRegister()
+     */
     @Override
     public void afterPropertiesSet() throws Exception {
         this.mybatisInterceptorRegister();
