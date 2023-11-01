@@ -1,11 +1,12 @@
-## [1.0.1] - under development(目前版本具有重大bug)
+## [1.0.1] - under development
 ### Removed
 - 依赖关系 `spring-boot-starter-jdbc`
 ### Changed
 - 自动读取多租户表不再使用jdbcTemplate方式进行，因为项目基于mybatis，直接使用mybatis进行的sqlSession即可。
+- 修改group-id等maven坐标。
 ### Added
 - 添加`excludeTables`配置项，排除不需要多租户的表。
-- 添加插件对insert sql的多租户处理支持。
+- 添加插件对`insert`语句的多租户处理支持。
 
 ## [1.0.0] - 2023-10-19
 ### Changed
