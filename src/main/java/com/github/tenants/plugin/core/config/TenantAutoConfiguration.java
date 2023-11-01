@@ -8,19 +8,19 @@ import com.github.tenants.plugin.core.MybatisInterceptorAutoRegister;
 import com.github.tenants.plugin.core.TenantUserIdentity;
 import com.github.tenants.plugin.core.interceptor.TenantSqlInterceptor;
 import com.github.tenants.plugin.ex.TenantException;
-import com.github.tenants.plugin.mapper.StructureMapper;
-import com.github.tenants.plugin.util.MybatisUtils;
-import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.omg.CORBA.SystemException;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -34,8 +34,8 @@ import java.util.*;
  */
 @Configuration
 @EnableConfigurationProperties(TenantProperties.class)
-@ConditionalOnClass({SqlSessionFactory.class, SqlSessionFactory.class, TenantProperties.class})
-public class TenantAutoConfiguration {
+@ConditionalOnClass({SqlSessionFactory.class, TenantProperties.class, TenantUserIdentity.class})
+public class TenantAutoConfiguration implements CommandLineRunner {
 
     public TenantUserIdentity tenantUserImplement;
 
@@ -45,9 +45,7 @@ public class TenantAutoConfiguration {
      */
     private Map<String, TenantFilter> nameNFilter;
 
-    final List<SqlSessionFactory> sqlSessionFactoryList;
-
-    final SqlSessionFactory sqlSessionFactory;
+    private List<SqlSessionFactory> sqlSessionFactoryList;
 
     final TenantProperties tenantProperties;
 
@@ -60,37 +58,7 @@ public class TenantAutoConfiguration {
      */
     @Bean
     public TenantSqlInterceptor tenantSqlInterceptorReg() {
-        if (tenantProperties.getTargetColumns() == null) {
-            throw new TenantException("no multi tenant related fields are specified");
-        }
-        if (tenantProperties.getScanMode().equals(TenantProperties.TenantMode.AUTO)) {
-            Map<Class<?>, ?> classMybatisMapperProxyFactoryMap = MybatisUtils.getMapperRegistry(sqlSessionFactory);
-            //将mybatis-plus的mapper获取到，获取每一个方法上的MybatisInterceptorAnnotation注解的type与对应方法全限路径。
-            this.nameNFilter = new HashMap<>();
-            for (Class<?> aClass : classMybatisMapperProxyFactoryMap.keySet()) {
-                for (Method method : aClass.getMethods()) {
-                    TenantFilter annotation = method.getAnnotation(TenantFilter.class);
-                    if (annotation != null) {
-                        String name = method.getName();
-                        this.nameNFilter.put(aClass.getName() + "." + name, annotation);
-                    }
-                }
-            }
-            // 创建 SqlSession
-            try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
-                org.apache.ibatis.session.Configuration configuration = sqlSession.getConfiguration();
-                if (!configuration.hasMapper(StructureMapper.class)) {
-                    configuration.addMapper(StructureMapper.class);
-                }
-                StructureMapper structureMapper = sqlSession.getMapper(StructureMapper.class);
-                for (String targetColumn : tenantProperties.getTargetColumns()) {
-                    List<String> tableNames = structureMapper.queryTablesByColumnName(targetColumn);
-                    tenantProperties.getTargetTables().addAll(tableNames);
-                }
-            }
-        }
         this.frameworkStart();
-        new PluginCache(nameNFilter, tenantProperties, tenantUserImplement);
         return new TenantSqlInterceptor();
     }
 
@@ -131,10 +99,18 @@ public class TenantAutoConfiguration {
     }
 
 
-    public TenantAutoConfiguration(List<SqlSessionFactory> sqlSessionFactoryList, SqlSessionFactory sqlSessionFactory, ApplicationContext context, TenantProperties tenantProperties) {
-        this.sqlSessionFactoryList = sqlSessionFactoryList;
-        this.sqlSessionFactory = sqlSessionFactory;
+    public TenantAutoConfiguration(ApplicationContext context, TenantProperties tenantProperties) {
         this.context = context;
         this.tenantProperties = tenantProperties;
+    }
+
+    @Override
+    public void run(String... args) {
+        Map<String, SqlSessionFactory> beansOfType = context.getBeansOfType(SqlSessionFactory.class);
+        if (beansOfType.isEmpty()) {
+            throw new TenantException("no SqlSessionFactory found");
+        }
+        this.sqlSessionFactoryList = new ArrayList<>(beansOfType.values());
+        new PluginCache(sqlSessionFactoryList,tenantProperties, tenantUserImplement);
     }
 }

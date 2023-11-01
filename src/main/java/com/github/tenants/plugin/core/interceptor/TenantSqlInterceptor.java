@@ -99,6 +99,9 @@ public class TenantSqlInterceptor implements Interceptor {
      */
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
+        if (this.getTenantConfig() == null) {
+           return invocation.proceed();
+        }
         Executor executor = (Executor) invocation.getTarget();
         Object[] args = invocation.getArgs();
         // 获取查询语句相关信息
@@ -352,7 +355,9 @@ public class TenantSqlInterceptor implements Interceptor {
         if (tenantProperties == null || pluginCache == null) {
             PluginCache inst = PluginCache.getInst();
             this.pluginCache = inst;
-            this.tenantProperties = inst.getTenantProperties();
+            if (inst != null) {
+                this.tenantProperties = inst.getTenantProperties();
+            }
         }
         return pluginCache;
     }

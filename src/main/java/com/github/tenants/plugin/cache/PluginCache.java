@@ -3,7 +3,15 @@ package com.github.tenants.plugin.cache;
 import com.github.tenants.plugin.TenantProperties;
 import com.github.tenants.plugin.annotation.TenantFilter;
 import com.github.tenants.plugin.core.TenantUserIdentity;
+import com.github.tenants.plugin.ex.TenantException;
+import com.github.tenants.plugin.mapper.StructureMapper;
+import com.github.tenants.plugin.util.MybatisUtils;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
 
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,8 +32,36 @@ public class PluginCache {
 
     public TenantUserIdentity tenantUserImplement;
 
-    public PluginCache(Map<String, TenantFilter> nameNFilter, TenantProperties tenantProperties, TenantUserIdentity tenantUserImplement) {
-        this.nameNFilter = nameNFilter;
+    public PluginCache(List<SqlSessionFactory> sqlSessionFactoryList, TenantProperties tenantProperties, TenantUserIdentity tenantUserImplement) {
+        if (tenantProperties.getTargetColumns() == null) {
+            throw new TenantException("no multi tenant related fields are specified");
+        }
+        if (tenantProperties.getScanMode().equals(TenantProperties.TenantMode.AUTO)) {
+            Map<Class<?>, ?> classMybatisMapperProxyFactoryMap = MybatisUtils.getMapperRegistry(sqlSessionFactoryList.get(0));
+            //将mybatis-plus的mapper获取到，获取每一个方法上的MybatisInterceptorAnnotation注解的type与对应方法全限路径。
+            this.nameNFilter = new HashMap<>();
+            for (Class<?> aClass : classMybatisMapperProxyFactoryMap.keySet()) {
+                for (Method method : aClass.getMethods()) {
+                    TenantFilter annotation = method.getAnnotation(TenantFilter.class);
+                    if (annotation != null) {
+                        String name = method.getName();
+                        this.nameNFilter.put(aClass.getName() + "." + name, annotation);
+                    }
+                }
+            }
+            // 创建 SqlSession
+            try (SqlSession sqlSession = sqlSessionFactoryList.get(0).openSession()) {
+                org.apache.ibatis.session.Configuration configuration = sqlSession.getConfiguration();
+                if (!configuration.hasMapper(StructureMapper.class)) {
+                    configuration.addMapper(StructureMapper.class);
+                }
+                StructureMapper structureMapper = sqlSession.getMapper(StructureMapper.class);
+                for (String targetColumn : tenantProperties.getTargetColumns()) {
+                    List<String> tableNames = structureMapper.queryTablesByColumnName(targetColumn);
+                    tenantProperties.getTargetTables().addAll(tableNames);
+                }
+            }
+        }
         this.tenantProperties = tenantProperties;
         this.tenantUserImplement = tenantUserImplement;
         PluginCache.inst = this;
