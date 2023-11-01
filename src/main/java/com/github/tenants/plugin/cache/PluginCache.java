@@ -28,7 +28,7 @@ public class PluginCache {
      */
     private Map<String, TenantFilter> nameNFilter;
 
-    private TenantProperties tenantProperties;
+    private final TenantProperties tenantProperties;
 
     public TenantUserIdentity tenantUserImplement;
 

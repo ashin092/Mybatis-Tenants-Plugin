@@ -20,13 +20,26 @@ Mybatis-Tenants-Plugin 是一个基于 MyBatis 的拦截器接口扩展的spring
   inner join 
   (select * from table1 where id in (1,2,3)) t12 on t1.id = t12.id
 ```
-安装配置好插件后，实际执行的sql将会变如下所示，插件会帮开发者将多租户的参数进行过滤。
+安装配置好插件后，实际执行的query sql将会变如下所示，插件会帮开发者将多租户的参数进行过滤。
+
 ```mysql
   select * from table1 t1 
   inner join 
   (select * from table1 where id in (1,2,3) and tenants_id = ?) t12 on t1.id = t12.id  where t1.tenants_id = ?
 ```
 _*在这个例子中，`tenants_id = ?`的实际运行赋值与项目对`TenantUserIdentity`的继承实现有关_
+
+insert语句也是一样，会进行规则内租户的赋值：
+```mysql
+ insert into table1(column1,column2,column3) values(value1,value2,value3)
+```
+变更后
+
+```mysql
+ insert into table1(column1,column2,column3,tenants_id) values(value1,value2,value3,?)
+```
+_*在这个例子中，`tenants_id = ?`的实际运行赋值与项目对`TenantUserIdentity`的继承实现有关_
+
 
 ## 安装和配置
 
@@ -65,6 +78,8 @@ tenant.target-columns=
 tenant.filter-additional=_COUNT
 #租户表扫描模式： Auto自动模式：该模式下`tenant.target-tables`不生效。扫描全库，存在符合多租户相关字段的表自动处理。该方式启动时间会相较于指定模式慢，随着库的大小正逐渐增加。 Assign：指定表模式,需要指定`tenant.target-tables`表.
 tenant.scan-mode=Auto
+#多租户下指定排除的表
+tenant.exclude-tables=your tables...
 ```
 
 
@@ -173,6 +188,10 @@ public class MybatisPluginAutoConfiguration {
 
 
 * tenant.target-tables:多租户指定表范围，自动模式下不生效。如table1,table2,table3
+
+
+* tenant.exclude-tables:多租户下指定排除的表
+
 
 ## 联系和支持
 

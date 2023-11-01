@@ -10,7 +10,7 @@
     {
       "name": "tenant.exclude-tables",
       "type": "java.util.List<java.lang.String>",
-      "description": "多租户指定排除的表",
+      "description": "多租户下指定排除的表",
       "sourceType": "com.github.tenants.plugin.TenantProperties"
     },
     {

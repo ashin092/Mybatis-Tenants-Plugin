@@ -2,8 +2,8 @@
 
 ## Language versions
 
-- [English](/.github/README.en.md)
-- [Chinese](/.github/README.en.md)
+- [English](.github/README.en.md)
+- [Chinese](.github/README.en.md)
 
 Mybatis-Tenants-Plugin is a spring-boot-starter plugin based on MyBatis's interceptor interface expansion. It is a
 
@@ -28,22 +28,36 @@ Here is an example: assume `table1` is a multi-tenant table, and the multi-tenan
 ```mysql
   select *
   from table1 t1
-         inner join
-         (select * from table1 where id in (1, 2, 3)) t12 on t1.id = t12.id
+           inner join
+           (select * from table1 where id in (1, 2, 3)) t12 on t1.id = t12.id
 ```
 
-After the plugin is installed and configured properly, the actual executed sql will be as follows. The plugin will help
-developers filter the parameters of multiple tenants.
+After the plugin is installed and configured properly, the actual executed sql will be as follows. The plugin will help developers filter the parameters of multiple tenants.
+
 
 ```mysql
   select *
   from table1 t1
-         inner join
-         (select * from table1 where id in (1, 2, 3) and tenants_id = ?) t12 on t1.id = t12.id
+           inner join
+           (select * from table1 where id in (1, 2, 3) and tenants_id = ?) t12 on t1.id = t12.id
   where t1.tenants_id = ?
 ```
 
 _*In this example, the actual runtime assignment of `tenants_id = ?` is related to the project's inheritance implementation of TenantUserIdentity._
+
+The same applies to the insert statement, where the value assignment will be made within the rules for the tenant:
+```mysql
+ insert into table1(column1,column2,column3) values(value1,value2,value3)
+```
+
+After modification:
+```mysql
+ insert into table1(column1,column2,column3,tenants_id) values(value1,value2,value3,?)
+```
+
+_*In this example, the actual runtime assignment of `tenants_id = ?` is related to the project's inheritance implementation of TenantUserIdentity._
+
+
 
 ## Installation and Configuration
 You need the following conditions to run this project:
@@ -81,6 +95,8 @@ tenant.target-columns=
 tenant.filter-additional=_COUNT
 # The scanning mode of the tenant tables: `Auto` mode: In this mode, `tenant.target-tables` does not take effect. It will scan the entire database and automatically handle the tables that match the fields related to multi-tenants. This way could be slower to start compared to the specified mode. The speed may decrease gradually as the size of the database increases. `Assign`: The specified table mode, you need to specify `tenant.target-tables`.
 tenant.scan-mode=Auto
+#Tables to be excluded under multi-tenancy
+tenant.exclude-tables=your tables...
 ```
 
 ### Implement the abstract class TenantUserIdentity
@@ -173,17 +189,26 @@ public class MybatisPluginAutoConfiguration {
 ### Configuration Parameter Description
 
 Let's present an example using a .properties file:
-* tenant.filter-additional: Filter additional filtering suffix. Filtering compliance mapper method name + this value will also be effective to the rules of [Multi-tenant Filter - TenantFilter]. This configuration appears mainly to prevent the use of PageHelper + filters when, mapper method added a filter logo. And because PageHelper generates sql as sqlId+_COUNT, it fails to successfully filter, and finally the pagination is far from expected.
+
+
+* tenant.filter-additional: Filter additional filtering suffix. Filtering compliance mapper method name + this value will also be effective to the rules of [Multi-tenant Filter - TenantFilter]. This configuration appears mainly to prevent the use of PageHelper + filters when, mapper method added a filter logo. And because PageHelper generates sql as {sqlId + "_COUNT"}, it fails to successfully filter, and finally the pagination is far from expected.
+
 
 * tenant.interceptor-auto-register: Indicates whether the interceptor should automatically register.
   By default, the interceptor registers automatically when the software executes. However, in some cases, it may be necessary to manually register the interceptor. This variable provides the flexibility to enable or disable automatic registration behavior.
-  If this variable is set to {@code true}, the interceptor will automatically register. If the value is {@code false}, the interceptor will not automatically register, and manual registration must be performed.
+  If this variable is set to `true`, the interceptor will automatically register. If the value is `false`, the interceptor will not automatically register, and manual registration must be performed.
+
 
 * tenant.scan-mode: The multi-tenant sql interference mode. Auto automatic mode(default): Scan the entire library, and handle tables that have relevant multi-tenant fields automatically. This method will be slower to start than the specified mode, with the size of the number table gradually increasing.When starting. Assign specified mode: Do not automatically scan tables, and handle the tables in the tenant-include-tables list as multi-tenant tables for specific processing.
 
+
 * tenant.target-columns: Multi-tenant related fields, multiple can be specified. Normally there should only be one, temporarily reserved for compatibility.
 
+
 * tenant.target-tables: The scope of the multi-tenant specified table does not take effect under automatic mode. Such as table1,table2,table3
+
+
+* tenant.exclude-tables: to be excluded under multi-tenancy
 
 ## Contact and Support
 

@@ -40,7 +40,7 @@ public class TenantProperties {
     private List<String> targetTables = null;
 
     /**
-     * 多租户指定排除的表
+     * 多租户下指定排除的表
      */
     private List<String> excludeTables = null;
 
