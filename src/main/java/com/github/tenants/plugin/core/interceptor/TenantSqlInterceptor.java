@@ -126,6 +126,9 @@ public class TenantSqlInterceptor implements Interceptor {
         }
         // 否则，开始处理SQL，添加租户ID
         String tenantsSql = boundSql.getSql();
+        // 通过反射将处理后的SQL语句设置回BoundSql对象，供后续的查询调用
+        Field field = boundSql.getClass().getDeclaredField("sql");
+        field.setAccessible(true);
         try {
             // 使用JSQLParser解析原始的SQL语句
             Statement stmt = CCJSqlParserUtil.parse(tenantsSql);
@@ -137,15 +140,12 @@ public class TenantSqlInterceptor implements Interceptor {
 
                 this.handleSelectStmt(selectBody, this.getTenantConfig().tenantUserImplement.doGetTenantUserIdentity());
                 tenantsSql = selectBody.toString();
-
-                // 通过反射将处理后的SQL语句设置回BoundSql对象，供后续的查询调用
-                Field field = boundSql.getClass().getDeclaredField("sql");
-                field.setAccessible(true);
-                field.set(boundSql, tenantsSql);
             } else if (SqlCommandType.INSERT.equals(sqlCommandType)) {
                 // 如果是INSERT语句，进行相应的处理
                 this.handleInsertStmt(stmt);
+                tenantsSql = stmt.toString();
             }
+            field.set(boundSql, tenantsSql);
         } catch (JSQLParserException e) {
             // 解析失败，忽略并执行原始SQL
             //log.info("多租户信息处理失败，执行原sql", e);=
@@ -310,6 +310,7 @@ public class TenantSqlInterceptor implements Interceptor {
                 }
             }
         }
+        System.out.println(stmt.toString());
     }
 
 

@@ -10,15 +10,17 @@ import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * PluginCache 是一个类，用于存储插件信息的缓存。
  *
  * @author xierh
- *  * @since 2023/10/31 17:00
+ * * @since 2023/10/31 17:00
  */
 public class PluginCache {
 
@@ -38,28 +40,28 @@ public class PluginCache {
      * 使用给定的参数构造一个 PluginCache 对象。
      *
      * @param sqlSessionFactoryList 要从中检索映射器注册表的 SqlSessionFactory 对象的列表
-     * @param tenantProperties 包含多租户相关字段和设置的 TenantProperties 对象
-     * @param tenantUserImplement 用于实现多租户的 TenantUserIdentity 对象
-     *
+     * @param tenantProperties      包含多租户相关字段和设置的 TenantProperties 对象
+     * @param tenantUserImplement   用于实现多租户的 TenantUserIdentity 对象
      * @throws TenantException 如果 tenantProperties 中未指定多租户相关字段
      */
     public PluginCache(List<SqlSessionFactory> sqlSessionFactoryList, TenantProperties tenantProperties, TenantUserIdentity tenantUserImplement) {
         if (tenantProperties.getTargetColumns() == null) {
             throw new TenantException("no multi tenant related fields are specified");
         }
-        if (tenantProperties.getScanMode().equals(TenantProperties.TenantMode.AUTO)) {
-            Map<Class<?>, ?> classMybatisMapperProxyFactoryMap = MybatisUtils.getMapperRegistry(sqlSessionFactoryList.get(0));
-            //将mybatis-plus的mapper获取到，获取每一个方法上的MybatisInterceptorAnnotation注解的type与对应方法全限路径。
-            this.nameNFilter = new HashMap<>();
-            for (Class<?> aClass : classMybatisMapperProxyFactoryMap.keySet()) {
-                for (Method method : aClass.getMethods()) {
-                    TenantFilter annotation = method.getAnnotation(TenantFilter.class);
-                    if (annotation != null) {
-                        String name = method.getName();
-                        this.nameNFilter.put(aClass.getName() + "." + name, annotation);
-                    }
+        Map<Class<?>, ?> classMybatisMapperProxyFactoryMap = MybatisUtils.getMapperRegistry(sqlSessionFactoryList.get(0));
+        //将mybatis-plus的mapper获取到，获取每一个方法上的MybatisInterceptorAnnotation注解的type与对应方法全限路径。
+        this.nameNFilter = new HashMap<>();
+        for (Class<?> aClass : classMybatisMapperProxyFactoryMap.keySet()) {
+            for (Method method : aClass.getMethods()) {
+                TenantFilter annotation = method.getAnnotation(TenantFilter.class);
+                if (annotation != null) {
+                    String name = method.getName();
+                    this.nameNFilter.put(aClass.getName() + "." + name, annotation);
                 }
             }
+        }
+        if (tenantProperties.getScanMode().equals(TenantProperties.TenantMode.AUTO)) {
+            List<String> tables = new ArrayList<>();
             // 创建 SqlSession
             try (SqlSession sqlSession = sqlSessionFactoryList.get(0).openSession()) {
                 org.apache.ibatis.session.Configuration configuration = sqlSession.getConfiguration();
@@ -69,9 +71,15 @@ public class PluginCache {
                 StructureMapper structureMapper = sqlSession.getMapper(StructureMapper.class);
                 for (String targetColumn : tenantProperties.getTargetColumns()) {
                     List<String> tableNames = structureMapper.queryTablesByColumnName(targetColumn);
-                    tenantProperties.getTargetTables().addAll(tableNames);
+                    tables.addAll(tableNames);
                 }
             }
+            tenantProperties.setTargetTables(tables);
+        }
+        if (tenantProperties.getExcludeTables() != null && !tenantProperties.getExcludeTables().isEmpty()) {
+            tenantProperties.setTargetTables(tenantProperties.getTargetTables().stream()
+                    .filter(targets -> !tenantProperties.getExcludeTables().contains(targets))
+                    .collect(Collectors.toList()));
         }
         this.tenantProperties = tenantProperties;
         this.tenantUserImplement = tenantUserImplement;
