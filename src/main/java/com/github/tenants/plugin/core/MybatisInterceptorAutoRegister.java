@@ -3,11 +3,10 @@ package com.github.tenants.plugin.core;
 import com.github.tenants.plugin.TenantProperties;
 import com.github.tenants.plugin.core.interceptor.TenantSqlInterceptor;
 import org.apache.ibatis.session.SqlSessionFactory;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.stereotype.Component;
+import org.springframework.context.ApplicationContext;
 
-import java.util.List;
+import javax.annotation.PostConstruct;
 
 /**
  * MybatisInterceptorAutoRegister 类负责注册 TenantSqlInterceptor
@@ -34,15 +33,14 @@ import java.util.List;
  * @author xierh
  * @since 2023/10/17 17:26
  */
-@Component
 @ConditionalOnClass({TenantProperties.class, SqlSessionFactory.class})
-public class MybatisInterceptorAutoRegister implements InitializingBean {
+public class MybatisInterceptorAutoRegister{
 
     final TenantProperties tenantProperties;
 
-    final List<SqlSessionFactory> sqlSessionFactoryList;
-
     final TenantSqlInterceptor tenantSqlInterceptor;
+
+    final ApplicationContext context;
 
     /**
      * 此方法将 TenantSqlInterceptor 注册为所有已配置的 SqlSessionFactory 实例的侦听器。
@@ -53,32 +51,20 @@ public class MybatisInterceptorAutoRegister implements InitializingBean {
      *
      * @see TenantProperties#interceptorAutoRegister
      */
-    public void mybatisInterceptorRegister() {
+    @PostConstruct
+    private void mybatisInterceptorRegister() {
         if (!tenantProperties.isInterceptorAutoRegister()) {
             return;
         }
-        for (SqlSessionFactory sqlSessionFactory : sqlSessionFactoryList) {
+        for (SqlSessionFactory sqlSessionFactory : context.getBeansOfType(SqlSessionFactory.class).values()) {
             sqlSessionFactory.getConfiguration().addInterceptor(tenantSqlInterceptor);
         }
     }
 
-    public MybatisInterceptorAutoRegister(TenantProperties tenantProperties, List<SqlSessionFactory> sqlSessionFactoryList, TenantSqlInterceptor tenantSqlInterceptor) {
+    public MybatisInterceptorAutoRegister(TenantProperties tenantProperties, TenantSqlInterceptor tenantSqlInterceptor, ApplicationContext context) {
         this.tenantProperties = tenantProperties;
-        this.sqlSessionFactoryList = sqlSessionFactoryList;
         this.tenantSqlInterceptor = tenantSqlInterceptor;
+        this.context = context;
     }
 
-    /**
-     * 此方法在设置完所有 Bean 属性后调用，通常用于执行初始化。
-     * 调用 {@link #mybatisInterceptorRegister()} 方法将 TenantSqlInterceptor 注册为侦听器
-     * 适用于所有已配置的 SqlSessionFactory 实例。
-     *
-     * @throws Exception 如果在初始化过程中发生异常
-     *
-     * @see #mybatisInterceptorRegister()
-     */
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        this.mybatisInterceptorRegister();
-    }
 }

@@ -1,7 +1,6 @@
 package com.github.tenants.plugin.core.config;
 
 import com.github.tenants.plugin.TenantProperties;
-import com.github.tenants.plugin.annotation.TenantFilter;
 import com.github.tenants.plugin.cache.PluginCache;
 import com.github.tenants.plugin.comparator.TenantChainOrderComparator;
 import com.github.tenants.plugin.core.MybatisInterceptorAutoRegister;
@@ -39,14 +38,6 @@ public class TenantAutoConfiguration implements CommandLineRunner {
 
     public TenantUserIdentity tenantUserImplement;
 
-    /**
-     * mapper方法名与过滤注解关系映射。
-     * 由于实现的是mybatis的intercept，运行时获取方法上的注解比较麻烦，不如直接先载入内存。
-     */
-    private Map<String, TenantFilter> nameNFilter;
-
-    private List<SqlSessionFactory> sqlSessionFactoryList;
-
     final TenantProperties tenantProperties;
 
     final ApplicationContext context;
@@ -63,8 +54,8 @@ public class TenantAutoConfiguration implements CommandLineRunner {
     }
 
     @Bean
-    public MybatisInterceptorAutoRegister miaReg(TenantSqlInterceptor tenantSqlInterceptor) {
-        return new MybatisInterceptorAutoRegister(tenantProperties, sqlSessionFactoryList, tenantSqlInterceptor);
+    public MybatisInterceptorAutoRegister mybatisInterceptorAutoRegister(TenantSqlInterceptor tenantSqlInterceptor) {
+        return new MybatisInterceptorAutoRegister(tenantProperties, tenantSqlInterceptor,context);
     }
 
     /**
@@ -90,15 +81,6 @@ public class TenantAutoConfiguration implements CommandLineRunner {
         this.tenantUserImplement = current;
     }
 
-    public Map<String, TenantFilter> getNameNFilter() {
-        return this.nameNFilter;
-    }
-
-    public TenantProperties getTenantProperties() {
-        return this.tenantProperties;
-    }
-
-
     public TenantAutoConfiguration(ApplicationContext context, TenantProperties tenantProperties) {
         this.context = context;
         this.tenantProperties = tenantProperties;
@@ -110,7 +92,6 @@ public class TenantAutoConfiguration implements CommandLineRunner {
         if (beansOfType.isEmpty()) {
             throw new TenantException("no SqlSessionFactory found");
         }
-        this.sqlSessionFactoryList = new ArrayList<>(beansOfType.values());
-        new PluginCache(sqlSessionFactoryList,tenantProperties, tenantUserImplement);
+        new PluginCache(new ArrayList<>(beansOfType.values()),tenantProperties, tenantUserImplement);
     }
 }
