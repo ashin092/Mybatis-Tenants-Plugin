@@ -3,7 +3,7 @@ package com.github.tenants.plugin.annotation;
 import java.lang.annotation.*;
 
 /**
- * 租户筛选器注释用于标记需要多租户处理的方法。
+ * 租户筛选器注释用于标记不需要多租户处理的方法。
  *
  * @author xierh
  * @since 2023/10/11 11:07

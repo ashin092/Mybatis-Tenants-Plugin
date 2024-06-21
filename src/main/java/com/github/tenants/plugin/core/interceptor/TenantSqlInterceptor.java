@@ -213,7 +213,7 @@ public class TenantSqlInterceptor implements Interceptor {
                 handleSelectStmt(subSelectBody, tenantId);
             }
 
-            // 处理每个join不分
+            // 处理每个join
             List<Join> joins = plainSelect.getJoins();
             LongValue tenantIdLV = new LongValue(tenantId);
             if (joins != null) {
